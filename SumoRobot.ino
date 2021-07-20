@@ -1,7 +1,7 @@
 #include <ZumoShield.h>
 #include <Wire.h>
 
-const float XY_ACCELERATION_THRESHOLD = 1000;
+const long XY_ACCELERATION_THRESHOLD = 2400;
 const float TURN_SPEED = 150;
 const float SPEED = 200;
 const float ACCELERATED_SPEED = 300;
@@ -51,8 +51,10 @@ private:
     void Calibrate()
     {
         // On White
+        Serial.println("STARTING CALIBRATION");
         PlaceOnSensors();
 
+        Serial.println("ON BLACK");
         // On Black
         PlaySound();
         PlaceOnSensors();
@@ -144,10 +146,13 @@ public:
     bool IsCollided()
     {
         // Check if net acceleration is over a certain threshold
-        m_Imu.readAcc();
-        float xAcceleration = m_Imu.a.x * m_Imu.a.x;
-        float yAcceleration = m_Imu.a.y * m_Imu.a.y;
-        return ((xAcceleration + yAcceleration) > 50000);
+        m_Imu.read();
+        long xAcceleration = (long)m_Imu.a.x * (long)m_Imu.a.x;
+        long yAcceleration = (long)m_Imu.a.y * (long)m_Imu.a.y;
+        long netAcceleration = (long)xAcceleration + (long)yAcceleration;
+        long test = (long)XY_ACCELERATION_THRESHOLD * (long)XY_ACCELERATION_THRESHOLD;
+        Serial.println(netAcceleration);
+        return (netAcceleration >= test);
     }
 };
 
@@ -169,7 +174,10 @@ void loop()
     pZumoRobot->HitBorder();
     if (pZumoRobot->IsCollided())
     {
-        pZumoRobot->SetSpeed(0, 0);
-        Serial.println("COLLISION!");
+        // pZumoRobot->SetSpeed(0, 0);
+        // Serial.println("COLLISION!");
     }
 }
+
+// 78771250
+// 5760000
