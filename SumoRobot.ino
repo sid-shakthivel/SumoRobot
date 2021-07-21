@@ -1,10 +1,11 @@
 #include <ZumoShield.h>
 #include <Wire.h>
 
-const long XY_ACCELERATION_THRESHOLD = 2400;
+const long XY_ACCELERATION_THRESHOLD = 100000000;
 const float TURN_SPEED = 150;
 const float SPEED = 200;
 const float ACCELERATED_SPEED = 300;
+const float WAIT_DURATION = 200;
 
 class CZumoRobot
 {
@@ -46,7 +47,7 @@ private:
             tOldTime = tTime;
         }
         m_Motors.setSpeeds(0, 0);
-        delay(100);
+        delay(WAIT_DURATION);
     }
 
     void Calibrate()
@@ -92,7 +93,7 @@ public:
     void MoveForwards(int nSpeed, int nDuration) // nDuration is in seconds
     {
         m_Motors.setSpeeds(nSpeed, nSpeed);
-        delay(nDuration * 1000);
+        delay(nDuration * WAIT_DURATION);
         m_Motors.setSpeeds(0, 0);
     }
 
@@ -131,7 +132,7 @@ public:
         if (m_rgucReflectanceSensorReadings[0] > 500 || m_rgucReflectanceSensorReadings[5] > 500)
         {
             SetSpeed(0, 0);
-            delay(100);
+            delay(WAIT_DURATION);
 
             float test = random(180);
             if (m_rgucReflectanceSensorReadings[0] > 500)
@@ -139,7 +140,7 @@ public:
             else if (m_rgucReflectanceSensorReadings[5] > 500)
                 TurnRight(test);
 
-            delay(100);
+            delay(WAIT_DURATION);
             SetSpeed(SPEED, SPEED);
         }
     }
@@ -150,7 +151,7 @@ public:
         long xAcceleration = (long)m_Imu.a.x * (long)m_Imu.a.x;
         long yAcceleration = (long)m_Imu.a.y * (long)m_Imu.a.y;
         long netAcceleration = (long)xAcceleration + (long)yAcceleration;
-        return (netAcceleration >= 100000000);
+        return (netAcceleration >= XY_ACCELERATION_THRESHOLD);
     }
 };
 
@@ -184,5 +185,6 @@ void loop()
             else
                 pZumoRobot->TurnRight(random(180));
         }
+        delay(WAIT_DURATION);
     }
 }
