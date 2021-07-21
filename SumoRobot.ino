@@ -26,23 +26,24 @@ private:
         m_Imu.g.z *= 0.00875;
     }
 
-    void Turn(float fTargetAngle, bool bIsLeft)
+    template <typename T>
+    void Turn(T tTargetAngle, bool bIsLeft)
     {
-        float fCurrentAngle = 0;
-        float fTime;
-        float fOldTime;
+        T tCurrentAngle = 0;
+        T tTime;
+        T tOldTime;
 
         if (bIsLeft)
             m_Motors.setSpeeds(TURN_SPEED, -TURN_SPEED);
         else
             m_Motors.setSpeeds(-TURN_SPEED, TURN_SPEED);
 
-        while (fCurrentAngle < fTargetAngle)
+        while (tCurrentAngle < tTargetAngle)
         {
             ReadMeasurements();
-            fTime = millis();
-            fCurrentAngle += abs(m_Imu.g.z * ((fTime - fOldTime) / 1000));
-            fOldTime = fTime;
+            tTime = millis();
+            tCurrentAngle += abs(m_Imu.g.z * ((tTime - tOldTime) / 1000));
+            tOldTime = tTime;
         }
         m_Motors.setSpeeds(0, 0);
         delay(100);
@@ -51,10 +52,8 @@ private:
     void Calibrate()
     {
         // On White
-        Serial.println("STARTING CALIBRATION");
         PlaceOnSensors();
 
-        Serial.println("ON BLACK");
         // On Black
         PlaySound();
         PlaceOnSensors();
@@ -85,27 +84,28 @@ public:
         Calibrate();
     }
 
-    void PlaySound()
+    void PlaySound(char *cNotes = "!fa")
     {
-        m_Buzzer.play("!fa");
+        m_Buzzer.play(cNotes);
     }
 
-    // nDuration is in seconds
-    void MoveForwards(int nSpeed, int nDuration)
+    void MoveForwards(int nSpeed, int nDuration) // nDuration is in seconds
     {
         m_Motors.setSpeeds(nSpeed, nSpeed);
         delay(nDuration * 1000);
         m_Motors.setSpeeds(0, 0);
     }
 
-    void TurnLeft(float fDegrees)
+    template <typename T>
+    void TurnRight(T tDegrees)
     {
-        Turn(fDegrees, true);
+        Turn(tDegrees, false);
     }
 
-    void TurnRight(float fDegrees)
+    template <typename T>
+    void TurnLeft(T tDegrees)
     {
-        Turn(fDegrees, false);
+        Turn(tDegrees, true);
     }
 
     void WaitForPress()
@@ -118,9 +118,10 @@ public:
         return m_Button.getSingleDebouncedRelease();
     }
 
-    void SetSpeed(int nLeftSpeed, int nRightSpeed)
+    template <typename T>
+    void SetSpeed(T tLeftSpeed, T tRightSpeed)
     {
-        m_Motors.setSpeeds(nLeftSpeed, nRightSpeed);
+        m_Motors.setSpeeds(tLeftSpeed, tRightSpeed);
     }
 
     void HitBorder()
@@ -131,7 +132,6 @@ public:
         {
             SetSpeed(0, 0);
             delay(100);
-            // SlowDown();
 
             if (m_rgucReflectanceSensorReadings[0] > 500)
                 TurnLeft(random(180));
@@ -145,14 +145,11 @@ public:
 
     bool IsCollided()
     {
-        // Check if net acceleration is over a certain threshold
         m_Imu.read();
         long xAcceleration = (long)m_Imu.a.x * (long)m_Imu.a.x;
         long yAcceleration = (long)m_Imu.a.y * (long)m_Imu.a.y;
         long netAcceleration = (long)xAcceleration + (long)yAcceleration;
-        long test = (long)XY_ACCELERATION_THRESHOLD * (long)XY_ACCELERATION_THRESHOLD;
-        Serial.println(netAcceleration);
-        return (netAcceleration >= test);
+        return (netAcceleration >= 100000000);
     }
 };
 
@@ -174,10 +171,6 @@ void loop()
     pZumoRobot->HitBorder();
     if (pZumoRobot->IsCollided())
     {
-        // pZumoRobot->SetSpeed(0, 0);
-        // Serial.println("COLLISION!");
+        pZumoRobot->SetSpeed(ACCELERATED_SPEED, ACCELERATED_SPEED);
     }
 }
-
-// 78771250
-// 5760000
