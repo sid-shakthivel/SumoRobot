@@ -133,10 +133,11 @@ public:
             SetSpeed(0, 0);
             delay(100);
 
+            float test = random(180);
             if (m_rgucReflectanceSensorReadings[0] > 500)
-                TurnLeft(random(180));
+                TurnLeft(test);
             else if (m_rgucReflectanceSensorReadings[5] > 500)
-                TurnRight(random(180));
+                TurnRight(test);
 
             delay(100);
             SetSpeed(SPEED, SPEED);
@@ -171,6 +172,17 @@ void loop()
     pZumoRobot->HitBorder();
     if (pZumoRobot->IsCollided())
     {
-        pZumoRobot->SetSpeed(ACCELERATED_SPEED, ACCELERATED_SPEED);
+        Serial.println("COLLISION!");
+        int nOption = random(2);
+        if (nOption == 1)
+            pZumoRobot->SetSpeed(ACCELERATED_SPEED, ACCELERATED_SPEED);
+        else
+        {
+            nOption = random(2);
+            if (nOption == 1)
+                pZumoRobot->TurnLeft(random(180));
+            else
+                pZumoRobot->TurnRight(random(180));
+        }
     }
 }
