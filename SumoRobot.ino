@@ -3,77 +3,22 @@
 
 constexpr long XY_ACCELERATION_THRESHOLD = 100000000;
 constexpr float TURN_SPEED = 150;
-constexpr float SPEED = 200;
+constexpr float SEARCH_SPEED = 200;
 constexpr float ACCELERATED_SPEED = 300;
-constexpr float WAIT_DURATION = 200;
+constexpr float WAIT_DURATION = 100;
 class CZumoRobot
 {
-private:
-    ZumoIMU m_Imu;
-    ZumoMotors m_Motors;
-    Pushbutton m_Button;
-    ZumoReflectanceSensorArray m_ReflectanceSensors;
-    ZumoBuzzer m_Buzzer;
-    unsigned int m_rgucReflectanceSensorReadings[6];
-
-    void ReadMeasurements()
-    {
-        m_Imu.read();
-
-        // Format Gyro Readings
-        m_Imu.g.x *= 0.00875;
-        m_Imu.g.y *= 0.00875;
-        m_Imu.g.z *= 0.00875;
-    }
-
-    template <typename T>
-    void Turn(T tTargetAngle, bool bIsLeft)
-    {
-        T tCurrentAngle = 0;
-        T tTime;
-        T tOldTime;
-
-        if (bIsLeft)
-            m_Motors.setSpeeds(TURN_SPEED, -TURN_SPEED);
-        else
-            m_Motors.setSpeeds(-TURN_SPEED, TURN_SPEED);
-
-        while (tCurrentAngle < tTargetAngle)
-        {
-            ReadMeasurements();
-            tTime = millis();
-            tCurrentAngle += abs(m_Imu.g.z * ((tTime - tOldTime) / 1000));
-            tOldTime = tTime;
-        }
-        m_Motors.setSpeeds(0, 0);
-        delay(WAIT_DURATION);
-    }
-
-    void Calibrate()
-    {
-        // On White
-        PlaceOnSensors();
-
-        // On Black
-        PlaySound();
-        PlaceOnSensors();
-
-        // Calibrated
-        PlaySound();
-    }
-
-    void PlaceOnSensors()
-    {
-        float fTime = millis();
-        float fThreshold = fTime + 5000;
-        while (fTime < fThreshold)
-        {
-            m_ReflectanceSensors.calibrate();
-            fTime = millis();
-        }
-    }
-
 public:
+    enum EState
+    {
+        Search,
+        Fight,
+        Flight,
+        RightTurn,
+        LeftTurn,
+        Stop,
+    };
+
     CZumoRobot() : m_Button(ZUMO_BUTTON)
     {
         m_Imu.init();
@@ -92,7 +37,7 @@ public:
     void MoveForwards(int nSpeed, int nDuration) // nDuration is in seconds
     {
         m_Motors.setSpeeds(nSpeed, nSpeed);
-        delay(nDuration * WAIT_DURATION);
+        delay(nDuration * 1000);
         m_Motors.setSpeeds(0, 0);
     }
 
@@ -124,33 +69,126 @@ public:
         m_Motors.setSpeeds(tLeftSpeed, tRightSpeed);
     }
 
-    void HitBorder()
+    void SetCurrentState(EState eNextState)
     {
-        // Checks how reflective the surface is (1000 black)
-        m_ReflectanceSensors.readCalibrated(m_rgucReflectanceSensorReadings);
-        if (m_rgucReflectanceSensorReadings[0] > 500 || m_rgucReflectanceSensorReadings[5] > 500)
-        {
-            SetSpeed(0, 0);
-            delay(WAIT_DURATION);
-
-            float test = random(180);
-            if (m_rgucReflectanceSensorReadings[0] > 500)
-                TurnLeft(test);
-            else if (m_rgucReflectanceSensorReadings[5] > 500)
-                TurnRight(test);
-
-            delay(WAIT_DURATION);
-            SetSpeed(SPEED, SPEED);
-        }
+        eCurrentState = eNextState;
     }
 
-    bool IsCollided()
+    EState GetCurrentState()
+    {
+        return eCurrentState;
+    }
+
+    void HitBorderLeft()
+    {
+        m_ReflectanceSensors.readCalibrated(m_rgucReflectanceSensorReadings);
+        if (m_rgucReflectanceSensorReadings[0] > 500)
+            eCurrentState = LeftTurn;
+    }
+
+    void HitBorderRight()
+    {
+        m_ReflectanceSensors.readCalibrated(m_rgucReflectanceSensorReadings);
+        if (m_rgucReflectanceSensorReadings[5] > 500)
+            eCurrentState = RightTurn;
+    }
+
+    void IsCollided()
     {
         m_Imu.read();
         long xAcceleration = (long)m_Imu.a.x * (long)m_Imu.a.x;
         long yAcceleration = (long)m_Imu.a.y * (long)m_Imu.a.y;
         long netAcceleration = (long)xAcceleration + (long)yAcceleration;
-        return (netAcceleration >= XY_ACCELERATION_THRESHOLD);
+        if (netAcceleration >= XY_ACCELERATION_THRESHOLD)
+        {
+            int nOption = random(2);
+            if (nOption == 1)
+            {
+                eCurrentState = Fight;
+            }
+            else
+            {
+                eCurrentState = Flight;
+            }
+        }
+    }
+
+    float GetWaitDuration()
+    {
+        return fWaitDuration;
+    }
+
+    void SetWaitDuration(float fFutureWaitDuration)
+    {
+        fWaitDuration = fFutureWaitDuration;
+    }
+
+private:
+    ZumoIMU m_Imu;
+    ZumoMotors m_Motors;
+    Pushbutton m_Button;
+    ZumoReflectanceSensorArray m_ReflectanceSensors;
+    ZumoBuzzer m_Buzzer;
+    unsigned int m_rgucReflectanceSensorReadings[6];
+    EState eCurrentState;
+    float fWaitDuration = 0;
+
+    void ReadMeasurements()
+    {
+        m_Imu.read();
+
+        // Format Gyro Readings
+        m_Imu.g.x *= 0.00875;
+        m_Imu.g.y *= 0.00875;
+        m_Imu.g.z *= 0.00875;
+    }
+
+    template <typename T>
+    void Turn(T tTargetAngle, bool bIsLeft)
+    {
+        T tCurrentAngle = 0;
+        T tTime;
+        T tOldTime;
+
+        if (bIsLeft)
+            m_Motors.setSpeeds(TURN_SPEED, -TURN_SPEED);
+        else
+            m_Motors.setSpeeds(-TURN_SPEED, TURN_SPEED);
+
+        while (tCurrentAngle < tTargetAngle)
+        {
+            ReadMeasurements();
+            tTime = millis();
+            tCurrentAngle += abs(m_Imu.g.z * ((tTime - tOldTime) / 1000));
+            tOldTime = tTime;
+        }
+
+        // Once turned go back to search
+        eCurrentState = Search;
+    }
+
+    void Calibrate()
+    {
+        // On White
+        PlaceOnSensors();
+
+        // On Black
+        PlaySound();
+        PlaceOnSensors();
+
+        // Calibrated
+        PlaySound();
+    }
+
+    void PlaceOnSensors()
+    {
+        float fTime = millis();
+        float fThreshold = fTime + 5000;
+        while (fTime < fThreshold)
+        {
+            m_ReflectanceSensors.calibrate();
+            fTime = millis();
+        }
     }
 };
 
@@ -164,26 +202,48 @@ void setup()
 
     pZumoRobot->WaitForPress();
     Serial.println("STARTING");
-    pZumoRobot->SetSpeed(SPEED, SPEED);
+    pZumoRobot->SetCurrentState(pZumoRobot->Search);
 }
 
 void loop()
 {
-    pZumoRobot->HitBorder();
-    if (pZumoRobot->IsCollided())
+    pZumoRobot->SetWaitDuration(0);
+    pZumoRobot->SetCurrentState(pZumoRobot->Search);
+
+    pZumoRobot->HitBorderLeft();
+    pZumoRobot->HitBorderRight();
+    pZumoRobot->IsCollided();
+    switch (pZumoRobot->GetCurrentState())
     {
-        Serial.println("COLLISION!");
+    case pZumoRobot->Search:
+        pZumoRobot->SetSpeed(SEARCH_SPEED, SEARCH_SPEED);
+        break;
+    case pZumoRobot->Fight:
+        pZumoRobot->SetSpeed(ACCELERATED_SPEED, ACCELERATED_SPEED);
+        pZumoRobot->SetWaitDuration(500);
+        break;
+    case pZumoRobot->Flight:
         int nOption = random(2);
         if (nOption == 1)
-            pZumoRobot->SetSpeed(ACCELERATED_SPEED, ACCELERATED_SPEED);
+            pZumoRobot->TurnLeft(random(180));
         else
-        {
-            nOption = random(2);
-            if (nOption == 1)
-                pZumoRobot->TurnLeft(random(180));
-            else
-                pZumoRobot->TurnRight(random(180));
-        }
-        delay(WAIT_DURATION);
+            pZumoRobot->TurnRight(random(180));
+        pZumoRobot->SetSpeed(0, 0);
+        pZumoRobot->SetWaitDuration(WAIT_DURATION);
+        break;
+    case pZumoRobot->RightTurn:
+        pZumoRobot->TurnRight(random(180));
+        pZumoRobot->SetSpeed(0, 0);
+        pZumoRobot->SetWaitDuration(WAIT_DURATION);
+        break;
+    case pZumoRobot->LeftTurn:
+        pZumoRobot->TurnLeft(random(180));
+        pZumoRobot->SetSpeed(0, 0);
+        pZumoRobot->SetWaitDuration(WAIT_DURATION);
+        break;
+    default:
+        pZumoRobot->SetSpeed(SEARCH_SPEED, SEARCH_SPEED);
+        break;
     }
+    delay(pZumoRobot->GetWaitDuration());
 }
