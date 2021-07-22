@@ -1,12 +1,11 @@
 #include <ZumoShield.h>
 #include <Wire.h>
 
-const long XY_ACCELERATION_THRESHOLD = 100000000;
-const float TURN_SPEED = 150;
-const float SPEED = 200;
-const float ACCELERATED_SPEED = 300;
-const float WAIT_DURATION = 200;
-
+constexpr long XY_ACCELERATION_THRESHOLD = 100000000;
+constexpr float TURN_SPEED = 150;
+constexpr float SPEED = 200;
+constexpr float ACCELERATED_SPEED = 300;
+constexpr float WAIT_DURATION = 200;
 class CZumoRobot
 {
 private:
