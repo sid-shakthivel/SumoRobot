@@ -1,11 +1,15 @@
 #include <ZumoShield.h>
 #include <Wire.h>
 
-constexpr float XY_ACCELERATION_THRESHOLD = 100000000;
+constexpr float XY_ACCELERATION_THRESHOLD = 200000000;
 constexpr float TURN_SPEED = 150;
+constexpr float MIN_SPEED = 75;
 constexpr float SPEED = 150;
-constexpr float ACCELERATED_SPEED = 300;
+constexpr float ACCELERATED_SPEED = 200;
+constexpr float MAX_SPEED = 400;
 constexpr float MILISECONDS = 1000;
+constexpr float DEAFULT_WAIT_DURATION = 50;
+constexpr float REFLECTANCE_SENSOR_THRESHOLD = 500;
 
 class CZumoRobot
 {
@@ -51,7 +55,7 @@ public:
         switch (eCurrentState)
         {
         case Search:
-            // Serial.println("SEARCH");
+            Serial.println("SEARCH");
             break;
         case Fight:
             Serial.println("FIGHT");
@@ -66,7 +70,6 @@ public:
             Serial.println("LEFT TURN");
             break;
         default:
-            Serial.println("DEFAULT");
             break;
         }
         return eCurrentState;
@@ -105,9 +108,9 @@ public:
     void IsHitBorder()
     {
         m_ReflectanceSensors.readCalibrated(m_rgucReflectanceSensorReadings);
-        if (m_rgucReflectanceSensorReadings[0] > 500)
+        if (m_rgucReflectanceSensorReadings[0] > REFLECTANCE_SENSOR_THRESHOLD)
             SetCurrentState(LeftTurn);
-        else if (m_rgucReflectanceSensorReadings[5] > 500)
+        else if (m_rgucReflectanceSensorReadings[5] > REFLECTANCE_SENSOR_THRESHOLD)
             SetCurrentState(RightTurn);
     }
 
@@ -119,13 +122,37 @@ public:
         unsigned long ulNetAcceleration = ulXAcceleration + ulYAcceleration;
         if (ulNetAcceleration >= XY_ACCELERATION_THRESHOLD)
         {
-            // int nOption = random(2);
-            // if (nOption == 0)
-            //     SetCurrentState(FIGHT);
-            // else
-            //     SetCurrentState(FLIGHT);
-            SetCurrentState(Fight);
+            int nOption = random(2);
+            if (nOption == 0)
+                SetCurrentState(Fight);
+            else
+                SetCurrentState(Flight);
+            PlaySound("!T240 L8 agafaea f4");
         }
+    }
+
+    void TurnUntilWhite(bool bIsLeft)
+    {
+        m_ReflectanceSensors.readCalibrated(m_rgucReflectanceSensorReadings);
+        unsigned int unReflectanceSensorReading = 1000;
+
+        while (unReflectanceSensorReading > REFLECTANCE_SENSOR_THRESHOLD)
+        {
+            m_ReflectanceSensors.readCalibrated(m_rgucReflectanceSensorReadings);
+            if (bIsLeft)
+            {
+                SetSpeed(TURN_SPEED, -TURN_SPEED);
+                unReflectanceSensorReading = m_rgucReflectanceSensorReadings[0];
+            }
+            else
+            {
+                SetSpeed(-TURN_SPEED, TURN_SPEED);
+                unReflectanceSensorReading = m_rgucReflectanceSensorReadings[5];
+            }
+        }
+
+        SetSpeed(0, 0);
+        delay(50);
     }
 
 private:
@@ -153,7 +180,7 @@ private:
         float fOldTime = 0;
 
         SetSpeed(0, 0);
-        delay(100);
+        delay(50);
 
         if (bIsLeft)
             SetSpeed(TURN_SPEED, -TURN_SPEED);
@@ -171,11 +198,6 @@ private:
         SetSpeed(0, 0);
         SetWaitDuration(100);
         SetCurrentState(Search);
-    }
-
-    void PlaySound(char *cNotes = "f4")
-    {
-        m_Buzzer.play(cNotes);
     }
 
     void Calibrate()
@@ -201,6 +223,11 @@ private:
             fTime = millis();
         }
     }
+
+    void PlaySound(char *cNotes = "f4")
+    {
+        m_Buzzer.play(cNotes);
+    }
 };
 
 CZumoRobot *pZumoRobot;
@@ -218,33 +245,37 @@ void setup()
 
 void loop()
 {
-    pZumoRobot->SetWaitDuration(100);
-    pZumoRobot->IsHitBorder();
-    pZumoRobot->IsCollided();
-    switch (pZumoRobot->GetCurrentState())
-    {
-    case pZumoRobot->Search:
-        pZumoRobot->SetSpeed(SPEED, SPEED);
-        break;
-    case pZumoRobot->LeftTurn:
-        pZumoRobot->TurnLeft(random(180));
-        break;
-    case pZumoRobot->RightTurn:
-        pZumoRobot->TurnRight(random(180));
-        break;
-    case pZumoRobot->Fight:
-        pZumoRobot->SetSpeed(ACCELERATED_SPEED, ACCELERATED_SPEED);
-        pZumoRobot->SetWaitDuration(500);
-        break;
-    case pZumoRobot->Flight:
-        int nOption = random(2);
-        if (nOption == 1)
-            pZumoRobot->TurnLeft(random(180));
-        else
-            pZumoRobot->TurnRight(random(180));
-        break;
-    default:
-        break;
-    }
-    delay(pZumoRobot->GetWaitDuration());
+    // pZumoRobot->SetWaitDuration(0);
+    // pZumoRobot->IsHitBorder();
+    // pZumoRobot->IsCollided();
+    // switch (pZumoRobot->GetCurrentState())
+    // {
+    // case pZumoRobot->Search:
+    //     pZumoRobot->SetSpeed(random(MIN_SPEED, SPEED), random(MIN_SPEED, SPEED));
+    //     break;
+    // case pZumoRobot->LeftTurn:
+    //     pZumoRobot->TurnUntilWhite(true);
+    //     pZumoRobot->TurnLeft(random(90));
+    //     break;
+    // case pZumoRobot->RightTurn:
+    //     pZumoRobot->TurnUntilWhite(false);
+    //     pZumoRobot->TurnRight(random(90));
+    //     break;
+    // case pZumoRobot->Fight:
+    //     float fNewSpeed = random(SPEED, MAX_SPEED);
+    //     pZumoRobot->SetSpeed(fNewSpeed, fNewSpeed);
+    //     pZumoRobot->SetWaitDuration(250);
+    //     break;
+    // case pZumoRobot->Flight:
+    //     int nOption = random(2);
+    //     if (nOption == 1)
+    //         pZumoRobot->TurnLeft(random(180));
+    //     else
+    //         pZumoRobot->TurnRight(random(180));
+    //     pZumoRobot->SetCurrentState(pZumoRobot->Search);
+    //     break;
+    // default:
+    //     break;
+    // }
+    // delay(pZumoRobot->GetWaitDuration());
 }
