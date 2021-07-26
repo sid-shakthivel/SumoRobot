@@ -33,14 +33,16 @@ public:
         Calibrate();
     }
 
-    void MoveForwards(int nSpeed, int nDuration)
+    template <class T>
+    void MoveForwards(T nSpeed, T nDuration)
     {
         m_Motors.setSpeeds(nSpeed, nSpeed);
         delay(nDuration * 1000);
         m_Motors.setSpeeds(0, 0);
     }
 
-    void SetSpeed(int nLeftSpeed, int nRightSpeed)
+    template <class T>
+    void SetSpeed(T nLeftSpeed, T nRightSpeed)
     {
         m_Motors.setSpeeds(nLeftSpeed, nRightSpeed);
     }
@@ -75,7 +77,8 @@ public:
         return eCurrentState;
     }
 
-    void SetWaitDuration(float fNextWaitDuration)
+    template <class T>
+    void SetWaitDuration(T fNextWaitDuration)
     {
         fWaitDuration = fNextWaitDuration;
     }
@@ -85,12 +88,14 @@ public:
         return fWaitDuration;
     }
 
-    void TurnLeft(float fDegrees)
+    template <class T>
+    void TurnLeft(T fDegrees)
     {
         Turn(fDegrees, true);
     }
 
-    void TurnRight(float fDegrees)
+    template <class T>
+    void TurnRight(T fDegrees)
     {
         Turn(fDegrees, false);
     }
@@ -173,11 +178,12 @@ private:
         m_Imu.g.z = abs(m_Imu.g.z * 0.00875f);
     }
 
-    void Turn(float fTargetAngle, bool bIsLeft)
+    template <class T>
+    void Turn(T fTargetAngle, bool bIsLeft)
     {
-        float fCurrentAngle = 0;
-        float fTime = 0;
-        float fOldTime = 0;
+        T fCurrentAngle = 0;
+        T fTime = 0;
+        T fOldTime = 0;
 
         SetSpeed(0, 0);
         delay(50);
@@ -245,37 +251,37 @@ void setup()
 
 void loop()
 {
-    // pZumoRobot->SetWaitDuration(0);
-    // pZumoRobot->IsHitBorder();
-    // pZumoRobot->IsCollided();
-    // switch (pZumoRobot->GetCurrentState())
-    // {
-    // case pZumoRobot->Search:
-    //     pZumoRobot->SetSpeed(random(MIN_SPEED, SPEED), random(MIN_SPEED, SPEED));
-    //     break;
-    // case pZumoRobot->LeftTurn:
-    //     pZumoRobot->TurnUntilWhite(true);
-    //     pZumoRobot->TurnLeft(random(90));
-    //     break;
-    // case pZumoRobot->RightTurn:
-    //     pZumoRobot->TurnUntilWhite(false);
-    //     pZumoRobot->TurnRight(random(90));
-    //     break;
-    // case pZumoRobot->Fight:
-    //     float fNewSpeed = random(SPEED, MAX_SPEED);
-    //     pZumoRobot->SetSpeed(fNewSpeed, fNewSpeed);
-    //     pZumoRobot->SetWaitDuration(250);
-    //     break;
-    // case pZumoRobot->Flight:
-    //     int nOption = random(2);
-    //     if (nOption == 1)
-    //         pZumoRobot->TurnLeft(random(180));
-    //     else
-    //         pZumoRobot->TurnRight(random(180));
-    //     pZumoRobot->SetCurrentState(pZumoRobot->Search);
-    //     break;
-    // default:
-    //     break;
-    // }
-    // delay(pZumoRobot->GetWaitDuration());
+    pZumoRobot->SetWaitDuration(0);
+    pZumoRobot->IsHitBorder();
+    pZumoRobot->IsCollided();
+    switch (pZumoRobot->GetCurrentState())
+    {
+    case pZumoRobot->Search:
+        pZumoRobot->SetSpeed(random(MIN_SPEED, SPEED), random(MIN_SPEED, SPEED));
+        break;
+    case pZumoRobot->LeftTurn:
+        pZumoRobot->TurnUntilWhite(true);
+        pZumoRobot->TurnLeft(random(90));
+        break;
+    case pZumoRobot->RightTurn:
+        pZumoRobot->TurnUntilWhite(false);
+        pZumoRobot->TurnRight(random(90));
+        break;
+    case pZumoRobot->Fight:
+        float fNewSpeed = random(SPEED, MAX_SPEED);
+        pZumoRobot->SetSpeed(fNewSpeed, fNewSpeed);
+        pZumoRobot->SetWaitDuration(250);
+        break;
+    case pZumoRobot->Flight:
+        int nOption = random(2);
+        if (nOption == 1)
+            pZumoRobot->TurnLeft(random(180));
+        else
+            pZumoRobot->TurnRight(random(180));
+        pZumoRobot->SetCurrentState(pZumoRobot->Search);
+        break;
+    default:
+        break;
+    }
+    delay(pZumoRobot->GetWaitDuration());
 }
