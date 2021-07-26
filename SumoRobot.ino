@@ -5,7 +5,7 @@ constexpr float XY_ACCELERATION_THRESHOLD = 200000000;
 constexpr float TURN_SPEED = 150;
 constexpr float MIN_SPEED = 75;
 constexpr float SPEED = 150;
-constexpr float ACCELERATED_SPEED = 200;
+constexpr float ACCELERATED_SPEED = 300;
 constexpr float MAX_SPEED = 400;
 constexpr float MILISECONDS = 1000;
 constexpr float DEAFULT_WAIT_DURATION = 50;
@@ -127,11 +127,12 @@ public:
         unsigned long ulNetAcceleration = ulXAcceleration + ulYAcceleration;
         if (ulNetAcceleration >= XY_ACCELERATION_THRESHOLD)
         {
-            int nOption = random(2);
-            if (nOption == 0)
-                SetCurrentState(Fight);
-            else
-                SetCurrentState(Flight);
+            // int nOption = random(2);
+            // if (nOption == 0)
+            //     SetCurrentState(Fight);
+            // else
+            //     SetCurrentState(Flight);
+            SetCurrentState(Fight);
             PlaySound("!T240 L8 agafaea f4");
         }
     }
@@ -178,12 +179,11 @@ private:
         m_Imu.g.z = abs(m_Imu.g.z * 0.00875f);
     }
 
-    template <class T>
-    void Turn(T fTargetAngle, bool bIsLeft)
+    void Turn(float fTargetAngle, bool bIsLeft)
     {
-        T fCurrentAngle = 0;
-        T fTime = 0;
-        T fOldTime = 0;
+        float fCurrentAngle = 0;
+        float fTime = 0;
+        float fOldTime = 0;
 
         SetSpeed(0, 0);
         delay(50);
@@ -268,9 +268,8 @@ void loop()
         pZumoRobot->TurnRight(random(90));
         break;
     case pZumoRobot->Fight:
-        float fNewSpeed = random(SPEED, MAX_SPEED);
+        float fNewSpeed = random(ACCELERATED_SPEED, MAX_SPEED);
         pZumoRobot->SetSpeed(fNewSpeed, fNewSpeed);
-        pZumoRobot->SetWaitDuration(250);
         break;
     case pZumoRobot->Flight:
         int nOption = random(2);
