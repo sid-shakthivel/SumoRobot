@@ -127,12 +127,11 @@ public:
         unsigned long ulNetAcceleration = ulXAcceleration + ulYAcceleration;
         if (ulNetAcceleration >= XY_ACCELERATION_THRESHOLD)
         {
-            // int nOption = random(2);
-            // if (nOption == 0)
-            //     SetCurrentState(Fight);
-            // else
-            //     SetCurrentState(Flight);
-            SetCurrentState(Fight);
+            int nOption = random(2);
+            if (nOption == 0)
+                SetCurrentState(Fight);
+            else
+                SetCurrentState(Flight);
             PlaySound("!T240 L8 agafaea f4");
         }
     }
